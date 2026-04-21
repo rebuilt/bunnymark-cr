@@ -61,11 +61,11 @@ def main
         bunny.position = pos
 
         # Check boundaries and reverse direction if needed
-        if ((pos[0] + tex_bunny.width / 2.0) > Raylib.get_screen_width()) ||
+        if ((pos[0] + tex_bunny.width / 2.0) > screen_width) ||
            ((pos[0] + tex_bunny.width / 2.0) < 0)
           bunny.speed[0] *= -1
         end
-        if ((pos[1] + tex_bunny.height / 2.0) > Raylib.get_screen_height()) ||
+        if ((pos[1] + tex_bunny.height / 2.0) > screen_height) ||
            ((pos[1] + tex_bunny.height / 2.0 - 40) < 0)
           bunny.speed[1] *= -1
         end
