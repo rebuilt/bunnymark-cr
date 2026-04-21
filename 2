@@ -1,0 +1,97 @@
+require "raylib-cr"
+
+MAX_BUNNIES        = 200_000
+MAX_BATCH_ELEMENTS =   8192
+
+struct Bunny
+  property position : Raylib::Vector2
+  property speed : Raylib::Vector2
+  property color : Raylib::Color
+
+  def initialize(@position : Raylib::Vector2, @speed : Raylib::Vector2, @color : Raylib::Color)
+  end
+end
+
+def main
+  screen_width = 800
+  screen_height = 450
+
+  Raylib.init_window(screen_width, screen_height, "raylib [textures] example - bunnymark")
+
+  tex_bunny = Raylib.load_texture("resources/raybunny.png")
+
+  bunnies = [] of Bunny
+  bunnies_count = 0
+  # paused = false
+
+  # SetTargetFPS(60) # Set our game to run at 60 frames-per-second
+
+  until Raylib.close_window?
+    # Update
+    if Raylib.mouse_button_down?(Raylib::MouseButton::Left)
+      # Create more bunnies
+      100.times do |i|
+        if bunnies_count < MAX_BUNNIES
+          position = Raylib.get_mouse_position
+          speed = Raylib::Vector2.new
+          speed.x = Raylib.get_random_value(-250, 250).to_f
+          speed.y = Raylib.get_random_value(-250, 250).to_f
+          color = Raylib::Color.new
+          color.r = Raylib.get_random_value(50, 240).to_u8
+          color.g = Raylib.get_random_value(80, 240).to_u8
+          color.b = Raylib.get_random_value(100, 240).to_u8
+          color.a = 255
+          bunnies << Bunny.new(position, speed, color)
+          bunnies_count += 1
+        end
+      end
+    end
+
+    # if Raylib.key_pressed?(Raylib::KeyboardKey::P)
+    #   paused = !paused
+    # end
+
+    # unless paused
+      # Update bunnies
+      bunnies.each do |bunny|
+        # Update position
+        pos = bunny.position
+        # pos.x += bunny.speed.x
+        # pos.y += bunny.speed.y
+        pos.x += 1
+        pos.y += 1
+        bunny.position = pos
+
+        # Check boundaries and reverse direction if needed
+        if ((pos.x + tex_bunny.width / 2.0) > Raylib.get_screen_width()) ||
+           ((pos.x + tex_bunny.width / 2.0) < 0)
+          bunny.speed.x *= -1
+        end
+        if ((pos.y + tex_bunny.height / 2.0) > Raylib.get_screen_height()) ||
+           ((pos.y + tex_bunny.height / 2.0 - 40) < 0)
+          bunny.speed.y *= -1
+        end
+      end
+    # end
+
+    # Draw
+    Raylib.begin_drawing
+    Raylib.clear_background(Raylib::RAYWHITE)
+
+    bunnies.each do |bunny|
+      Raylib.draw_texture(tex_bunny, bunny.position.x, bunny.position.y, bunny.color)
+    end
+
+    Raylib.draw_rectangle(0, 0, screen_width, 40, Raylib::BLACK)
+    Raylib.draw_text("bunnies: #{bunnies_count}", 120, 10, 20, Raylib::GREEN)
+    Raylib.draw_text("batched draw calls: #{1 + bunnies_count / MAX_BATCH_ELEMENTS}", 320, 10, 20, Raylib::MAROON)
+
+    Raylib.draw_fps(10, 10)
+    Raylib.end_drawing
+  end
+
+  Raylib.unload_texture(tex_bunny)
+  Raylib.close_window
+end
+
+main
