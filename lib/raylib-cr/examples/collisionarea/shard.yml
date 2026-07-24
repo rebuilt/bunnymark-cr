@@ -1,16 +1,16 @@
-name: bunnymark
+name: collisionarea
 version: 0.1.0
 
 authors:
-  - Nelson Jovel
+  - Ian Rash <ian@sol.vin>
 
 targets:
   main:
-    main: src/bunnymark.cr
+    main: src/collisionarea.cr
 
 dependencies:
   raylib-cr:
-    github: sol-vin/raylib-cr
+    path: ../../
 
 crystal: 1.6.1
 

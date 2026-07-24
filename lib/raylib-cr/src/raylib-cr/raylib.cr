@@ -1,0 +1,1309 @@
+macro get_mouse_ray
+  get_screen_to_world_ray
+end
+
+{% if flag?(:darwin) %}
+  @[Link(framework: "OpenGL")]
+  @[Link(framework: "OpenAL")]
+  @[Link(framework: "Cocoa")]
+  @[Link(framework: "IOKit")]
+  @[Link(ldflags: "-L/opt/homebrew/lib")]
+{% end %}
+@[Link("raylib")]
+# :showdoc:
+lib Raylib
+  VERSION = "6.0"
+  PI      =    3.141592653589793
+  DEG2RAD = 0.017453292519943295
+  RAD2DEG =    57.29577951308232
+
+  alias Camera = Camera3D
+  alias TextureCubemap = Texture2D
+
+  @[Flags]
+  enum ConfigFlags
+    VSyncHint                    = 0x00000040
+    FullscreenMode               = 0x00000002
+    WindowResizable              = 0x00000004
+    WindowUndecorated            = 0x00000008
+    WindowHidden                 = 0x00000080
+    WindowMinimized              = 0x00000200
+    WindowMaximized              = 0x00000400
+    WindowUnfocused              = 0x00000800
+    WindowTopmost                = 0x00001000
+    WindowAlwaysRun              = 0x00000100
+    WindowTransparent            = 0x00000010
+    WindowHighdpi                = 0x00002000
+    WindowMousePassthrough       = 0x00004000
+    WindowBorderlessWindowedMode = 0x00008000
+    MSAA4xHint                   = 0x00000020
+    InterlacedHint               = 0x00010000
+  end
+
+  enum TraceLogLevel
+    All     = 0
+    Trace   = 1
+    Debug   = 2
+    Info    = 3
+    Warning = 4
+    Error   = 5
+    Fatal   = 6
+  end
+
+  enum KeyboardKey
+    Null         =   0
+    Apostrophe   =  39
+    Comma        =  44
+    Minus        =  45
+    Period       =  46
+    Slash        =  47
+    Zero         =  48
+    One          =  49
+    Two          =  50
+    Three        =  51
+    Four         =  52
+    Five         =  53
+    Six          =  54
+    Seven        =  55
+    Eight        =  56
+    Nine         =  57
+    Semicolon    =  59
+    Equal        =  61
+    A            =  65
+    B            =  66
+    C            =  67
+    D            =  68
+    E            =  69
+    F            =  70
+    G            =  71
+    H            =  72
+    I            =  73
+    J            =  74
+    K            =  75
+    L            =  76
+    M            =  77
+    N            =  78
+    O            =  79
+    P            =  80
+    Q            =  81
+    R            =  82
+    S            =  83
+    T            =  84
+    U            =  85
+    V            =  86
+    W            =  87
+    X            =  88
+    Y            =  89
+    Z            =  90
+    LeftBracket  =  91
+    Backslash    =  92
+    RightBracket =  93
+    Grave        =  96
+    Space        =  32
+    Escape       = 256
+    Enter        = 257
+    Tab          = 258
+    Backspace    = 259
+    Insert       = 260
+    Delete       = 261
+    Right        = 262
+    Left         = 263
+    Down         = 264
+    Up           = 265
+    PageUp       = 266
+    PageDown     = 267
+    Home         = 268
+    End          = 269
+    CapsLock     = 280
+    ScrollLock   = 281
+    NumLock      = 282
+    PrintScreen  = 283
+    Pause        = 284
+    F1           = 290
+    F2           = 291
+    F3           = 292
+    F4           = 293
+    F5           = 294
+    F6           = 295
+    F7           = 296
+    F8           = 297
+    F9           = 298
+    F10          = 299
+    F11          = 300
+    F12          = 301
+    LeftShift    = 340
+    LeftControl  = 341
+    LeftAlt      = 342
+    LeftSuper    = 343
+    RightShift   = 344
+    RightControl = 345
+    RightAlt     = 346
+    RightSuper   = 347
+    KbMenu       = 348
+    Kp0          = 320
+    Kp1          = 321
+    Kp2          = 322
+    Kp3          = 323
+    Kp4          = 324
+    Kp5          = 325
+    Kp6          = 326
+    Kp7          = 327
+    Kp8          = 328
+    Kp9          = 329
+    KpDecimal    = 330
+    KpDivide     = 331
+    KpMultiply   = 332
+    KpSubtract   = 333
+    KpAdd        = 334
+    KpEnter      = 335
+    KpEqual      = 336
+    Back         =   4
+    Menu         =   5
+    VolumeUp     =  24
+    VolumeDown   =  25
+
+    def up?
+      Raylib.key_up?(self.to_i)
+    end
+
+    def down?
+      Raylib.key_down?(self.to_i)
+    end
+
+    def pressed?
+      Raylib.key_pressed?(self.to_i)
+    end
+
+    def released?
+      Raylib.key_released?(self.to_i)
+    end
+  end
+
+  enum MouseButton
+    Left    = 0
+    Right   = 1
+    Middle  = 2
+    Side    = 3
+    Extra   = 4
+    Forward = 5
+    Back    = 6
+
+    def up?
+      Raylib.mouse_button_up?(self.to_i)
+    end
+
+    def released?
+      Raylib.mouse_button_released?(self.to_i)
+    end
+
+    def down?
+      Raylib.mouse_button_down?(self.to_i)
+    end
+
+    def pressed?
+      Raylib.mouse_button_pressed?(self.to_i)
+    end
+  end
+
+  enum MouseCursor
+    Default      =  0
+    Arrow        =  1
+    Ibeam        =  2
+    Crosshair    =  3
+    PointingHand =  4
+    ResizeEw     =  5
+    ResizeNs     =  6
+    ResizeNwse   =  7
+    ResizeNesw   =  8
+    ResizeAll    =  9
+    NotAllowed   = 10
+  end
+
+  enum Crixel::Gamepad::Player
+    One   = 0
+    Two   = 1
+    Three = 2
+    Four  = 3
+
+    def available?
+      Raylib.gamepad_available?(self.value)
+    end
+  end
+
+  enum GamepadButton
+    Unknown        =  0
+    LeftFaceUp     =  1
+    LeftFaceRight  =  2
+    LeftFaceDown   =  3
+    LeftFaceLeft   =  4
+    RightFaceUp    =  5
+    RightFaceRight =  6
+    RightFaceDown  =  7
+    RightFaceLeft  =  8
+    LeftTrigger1   =  9
+    LeftTrigger2   = 10
+    RightTrigger1  = 11
+    RightTrigger2  = 12
+    MiddleLeft     = 13
+    Middle         = 14
+    MiddleRight    = 15
+    LeftThumb      = 16
+    RightThumb     = 17
+
+    def up?(player : Player)
+      Raylib.gamepad_button_up?(player.to_i, self.to_i)
+    end
+
+    def down?(player : Player)
+      Raylib.gamepad_button_down?(player.to_i, self.to_i)
+    end
+
+    def pressed?(player : Player)
+      Raylib.gamepad_button_pressed?(player.to_i, self.to_i)
+    end
+
+    def released?(player : Player)
+      Raylib.gamepad_button_released?(player.to_i, self.to_i)
+    end
+  end
+
+  enum GamepadAxis
+    LeftX        = 0
+    LeftY        = 1
+    RightX       = 2
+    RightY       = 3
+    LeftTrigger  = 4
+    RightTrigger = 5
+
+    def get(player : Player)
+      Raylib.get_gamepad_axis_movement(player.to_i, self.to_i)
+    end
+  end
+
+  enum MaterialMapIndex
+    Albedo     =  0
+    Metalness  =  1
+    Normal     =  2
+    Roughness  =  3
+    Occlusion  =  4
+    Emission   =  5
+    Height     =  6
+    Cubemap    =  7
+    Irradiance =  8
+    Prefilter  =  9
+    Brdf       = 10
+  end
+
+  enum ShaderLocationIndex
+    VertexPosition          =  0
+    VertexTexcoord01        =  1
+    VertexTexcoord02        =  2
+    VertexNormal            =  3
+    VertexTangent           =  4
+    VertexColor             =  5
+    MatrixMvp               =  6
+    MatrixView              =  7
+    MatrixProjection        =  8
+    MatrixModel             =  9
+    MatrixNormal            = 10
+    VectorView              = 11
+    ColorDiffuse            = 12
+    ColorSpecular           = 13
+    ColorAmbient            = 14
+    MapAlbedo               = 15
+    MapMetalness            = 16
+    MapNormal               = 17
+    MapRoughness            = 18
+    MapOcclusion            = 19
+    MapEmission             = 20
+    MapHeight               = 21
+    MapCubemap              = 22
+    MapIrradiance           = 23
+    MapPrefilter            = 24
+    MapBrdf                 = 25
+    VertexBoneIDs           = 26
+    VertexBoneWeights       = 27
+    MatrixBoneTransforms    = 28
+    VertexInstanceTransform = 29
+  end
+
+  enum ShaderUniformDataType
+    Float     =  0
+    Vec2      =  1
+    Vec3      =  2
+    Vec4      =  3
+    Int       =  4
+    Ivec2     =  5
+    Ivec3     =  6
+    Ivec4     =  7
+    Uint      =  8
+    UIvec2    =  9
+    UIvec3    = 10
+    UIvec4    = 11
+    Sampler2d = 12
+  end
+
+  enum ShaderAttributeDataType
+    Float = 0
+    Vec2  = 1
+    Vec3  = 2
+    Vec4  = 3
+  end
+
+  enum PixelFormat
+    UncompressedGrayscale    =  1
+    UncompressedGrayAlpha    =  2
+    UncompressedR5g6b5       =  3
+    UncompressedR8g8b8       =  4
+    UncompressedR5g5b5a1     =  5
+    UncompressedR4g4b4a4     =  6
+    UncompressedR8g8b8a8     =  7
+    UncompressedR32          =  8
+    UncompressedR32g32b32    =  9
+    UncompressedR32g32b32a32 = 10
+    UncompressedR16          = 11
+    UncompressedR16G16B16    = 12
+    UncompressedR16G16B16A16 = 13
+    CompressedDxt1Rgb        = 14
+    CompressedDxt1Rgba       = 15
+    CompressedDxt3Rgba       = 16
+    CompressedDxt5Rgba       = 17
+    CompressedEtc1Rgb        = 18
+    CompressedEtc2Rgb        = 19
+    CompressedEtc2EacRgba    = 20
+    CompressedPvrtRgb        = 21
+    CompressedPvrtRgba       = 22
+    CompressedAstc4x4Rgba    = 23
+  end
+
+  enum TextureFilter
+    Point          = 0
+    Bilinear       = 1
+    Trilinear      = 2
+    Anisotropic4x  = 3
+    Anisotropic8x  = 4
+    Anisotropic16x = 5
+  end
+
+  enum TextureWrap
+    Repeat       = 0
+    Clamp        = 1
+    MirrorRepeat = 2
+    MirrorClamp  = 3
+  end
+
+  enum CubemapLayout
+    AutoDetect       = 0
+    LineVertical     = 1
+    LineHorizontal   = 2
+    CrossThreeByFour = 3
+    CrossFourByThree = 4
+  end
+
+  enum FontType
+    Default = 0
+    Bitmap  = 1
+    Sdf     = 2
+  end
+
+  enum BlendMode
+    Alpha            = 0
+    Additive         = 1
+    Multiplied       = 2
+    AddColors        = 3
+    SubtractColors   = 4
+    AlphaPremultiply = 5
+    Custom           = 6
+    CustomSeparate   = 7
+  end
+
+  enum Gesture
+    None       =   0
+    Tap        =   1
+    Doubletap  =   2
+    Hold       =   4
+    Drag       =   8
+    SwipeRight =  16
+    SwipeLeft  =  32
+    SwipeUp    =  64
+    SwipeDown  = 128
+    PinchIn    = 256
+    PinchOut   = 512
+  end
+
+  enum CameraMode
+    Custom      = 0
+    Free        = 1
+    Orbital     = 2
+    FirstPerson = 3
+    ThirdPerson = 4
+  end
+
+  enum CameraProjection
+    Perspective  = 0
+    Orthographic = 1
+  end
+
+  enum NPatchLayout
+    NinePatch            = 0
+    ThreePatchVertical   = 1
+    ThreePatchHorizontal = 2
+  end
+
+  LIGHTGRAY  = Color.new r: 200, g: 200, b: 200, a: 255
+  GRAY       = Color.new r: 130, g: 130, b: 130, a: 255
+  DARKGRAY   = Color.new r: 80, g: 80, b: 80, a: 255
+  YELLOW     = Color.new r: 253, g: 249, b: 0, a: 255
+  GOLD       = Color.new r: 255, g: 203, b: 0, a: 255
+  ORANGE     = Color.new r: 255, g: 161, b: 0, a: 255
+  PINK       = Color.new r: 255, g: 109, b: 194, a: 255
+  RED        = Color.new r: 230, g: 41, b: 55, a: 255
+  MAROON     = Color.new r: 190, g: 33, b: 55, a: 255
+  GREEN      = Color.new r: 0, g: 228, b: 48, a: 255
+  LIME       = Color.new r: 0, g: 158, b: 47, a: 255
+  DARKGREEN  = Color.new r: 0, g: 117, b: 44, a: 255
+  SKYBLUE    = Color.new r: 102, g: 191, b: 255, a: 255
+  BLUE       = Color.new r: 0, g: 121, b: 241, a: 255
+  DARKBLUE   = Color.new r: 0, g: 82, b: 172, a: 255
+  PURPLE     = Color.new r: 200, g: 122, b: 255, a: 255
+  VIOLET     = Color.new r: 135, g: 60, b: 190, a: 255
+  DARKPURPLE = Color.new r: 112, g: 31, b: 126, a: 255
+  BEIGE      = Color.new r: 211, g: 176, b: 131, a: 255
+  BROWN      = Color.new r: 127, g: 106, b: 79, a: 255
+  DARKBROWN  = Color.new r: 76, g: 63, b: 47, a: 255
+  WHITE      = Color.new r: 255, g: 255, b: 255, a: 255
+  BLACK      = Color.new r: 0, g: 0, b: 0, a: 255
+  BLANK      = Color.new r: 0, g: 0, b: 0, a: 0
+  MAGENTA    = Color.new r: 255, g: 0, b: 255, a: 255
+  RAYWHITE   = Color.new r: 245, g: 245, b: 245, a: 255
+
+  alias Texture = Texture2D
+  alias Quaternion = Vector4
+
+  struct Vector2
+    x : LibC::Float
+    y : LibC::Float
+  end
+
+  struct Vector3
+    x : LibC::Float
+    y : LibC::Float
+    z : LibC::Float
+  end
+
+  struct Vector4
+    x : LibC::Float
+    y : LibC::Float
+    z : LibC::Float
+    w : LibC::Float
+  end
+
+  struct Matrix
+    m0 : LibC::Float
+    m4 : LibC::Float
+    m8 : LibC::Float
+    m12 : LibC::Float
+    m1 : LibC::Float
+    m5 : LibC::Float
+    m9 : LibC::Float
+    m13 : LibC::Float
+    m2 : LibC::Float
+    m6 : LibC::Float
+    m10 : LibC::Float
+    m14 : LibC::Float
+    m3 : LibC::Float
+    m7 : LibC::Float
+    m11 : LibC::Float
+    m15 : LibC::Float
+  end
+
+  struct Color
+    r : LibC::UChar
+    g : LibC::UChar
+    b : LibC::UChar
+    a : LibC::UChar
+  end
+
+  struct Rectangle
+    x : LibC::Float
+    y : LibC::Float
+    width : LibC::Float
+    height : LibC::Float
+  end
+
+  struct Image
+    data : Void*
+    width : LibC::Int
+    height : LibC::Int
+    mipmaps : LibC::Int
+    format : LibC::Int
+  end
+
+  struct Texture2D
+    id : LibC::UInt
+    width : LibC::Int
+    height : LibC::Int
+    mipmaps : LibC::Int
+    format : LibC::Int
+  end
+
+  struct RenderTexture2D
+    id : LibC::UInt
+    texture : Texture2D
+    depth : Texture2D
+  end
+
+  alias RenderTexture = RenderTexture2D
+
+  struct NPatchInfo
+    source : Rectangle
+    left : LibC::Int
+    top : LibC::Int
+    right : LibC::Int
+    bottom : LibC::Int
+    layout : LibC::Int
+  end
+
+  struct GlyphInfo
+    value : LibC::Int
+    offset_x : LibC::Int
+    offset_y : LibC::Int
+    advance_x : LibC::Int
+    image : Image
+  end
+
+  struct Font
+    base_size : LibC::Int
+    glyph_count : LibC::Int
+    glyph_padding : LibC::Int
+    texture : Texture2D
+    recs : Rectangle*
+    glyphs : GlyphInfo*
+  end
+
+  struct Camera3D
+    position : Vector3
+    target : Vector3
+    up : Vector3
+    fovy : LibC::Float
+    projection : LibC::Int
+  end
+
+  struct Camera2D
+    offset : Vector2
+    target : Vector2
+    rotation : LibC::Float
+    zoom : LibC::Float
+  end
+
+  struct Mesh
+    vertex_count : LibC::Int
+    triangle_count : LibC::Int
+
+    vertices : LibC::Float*
+    texcoords : LibC::Float*
+    texcoords2 : LibC::Float*
+    normals : LibC::Float*
+    tangents : LibC::Float*
+    colors : LibC::UChar*
+    indices : LibC::UShort*
+
+    bone_count : LibC::Int
+    bone_indices : LibC::UShort*
+    bone_weights : LibC::Float*
+
+    anim_vertices : LibC::Float*
+    anim_normal : LibC::Float*
+    vaoId : LibC::UInt
+    vboId : LibC::Int*
+  end
+
+  struct Shader
+    id : LibC::UInt
+    locs : LibC::Int*
+  end
+
+  struct MaterialMap
+    texture : Texture2D
+    color : Color
+    value : LibC::Float
+  end
+
+  struct Material
+    shader : Shader
+    maps : MaterialMap*
+    params : StaticArray(LibC::Float, 4)
+  end
+
+  struct Transform
+    translation : Vector3
+    rotation : Vector4
+    scale : Vector3
+  end
+
+  alias ModelAnimPose = Transform*
+
+  struct BoneInfo
+    name : StaticArray(LibC::UChar, 32)
+    parent : LibC::Int
+  end
+
+  struct ModelSkeleton
+    bone_count : LibC::Int
+    bones : BoneInfo*
+    bind_pose : ModelAnimPose
+  end
+
+  struct Model
+    transform : Matrix
+    mesh_count : LibC::Int
+    material_count : LibC::Int
+    meshes : Mesh*
+    materials : Material*
+    mesh_material : LibC::Int*
+
+    skeleton : ModelSkeleton
+    current_pose : ModelAnimPose
+    bone_matrices : Matrix*
+  end
+
+  struct ModelAnimation
+    name : StaticArray(LibC::Char, 32)
+
+    bone_count : LibC::Int
+    keyframe_count : LibC::Int
+    keyframe_poses : ModelAnimPose*
+  end
+
+  struct Ray
+    position : Vector3
+    direction : Vector3
+  end
+
+  struct RayCollision
+    hit : Bool
+    distance : LibC::Float
+    point : Vector3
+    normal : Vector3
+  end
+
+  struct BoundingBox
+    min : Vector3
+    max : Vector3
+  end
+
+  struct VrDeviceInfo
+    h_resolution : LibC::Int
+    v_resolution : LibC::Int
+    h_screenSize : LibC::Float
+    v_screenSize : LibC::Float
+    eye_to_screen_distance : LibC::Float
+    lens_separation_distance : LibC::Float
+    interpupillary_distance : LibC::Float
+    lens_distortion_values : StaticArray(LibC::Float, 4)
+    chroma_ab_correction : StaticArray(LibC::Float, 4)
+  end
+
+  struct VrStereoConfig
+    projection : StaticArray(Matrix, 2)
+    view_offset : StaticArray(Matrix, 2)
+    left_lens_center : StaticArray(LibC::Float, 2)
+    right_lens_center : StaticArray(LibC::Float, 2)
+    left_screen_center : StaticArray(LibC::Float, 2)
+    right_screen_center : StaticArray(LibC::Float, 2)
+    scale : StaticArray(LibC::Float, 2)
+    scale_in : StaticArray(LibC::Float, 2)
+  end
+
+  struct FilePathList
+    count : LibC::UInt
+    paths : LibC::Char**
+  end
+
+  struct AutomationEvent
+    frame : LibC::UInt
+    type : LibC::UInt
+    params : StaticArray(LibC::Int, 4)
+  end
+
+  struct AutomationEventList
+    capacity : LibC::UInt
+    count : LibC::UInt
+    events : AutomationEvent*
+  end
+
+  fun init_window = InitWindow(width : LibC::Int, height : LibC::Int, title : LibC::Char*)
+  fun close_window? = WindowShouldClose : Bool
+  fun close_window = CloseWindow
+  fun window_ready? = IsWindowReady : Bool
+  fun window_hidden? = IsWindowHidden : Bool
+  fun window_minimized? = IsWindowMinimized : Bool
+  fun window_maximized? = IsWindowMaximized : Bool
+  fun window_focused? = IsWindowFocused : Bool
+  fun window_resized? = IsWindowResized : Bool
+  fun window_fullscreen? = IsWindowFullscreen : Bool
+  fun window_state? = IsWindowState(flag : ConfigFlags) : Bool
+  fun set_window_state = SetWindowState(flag : ConfigFlags)
+  fun clear_window_state = ClearWindowState(flag : ConfigFlags)
+  fun toggle_fullscreen = ToggleFullscreen
+  fun toggle_borderless_windowed = ToggleBorderlessWindowed
+
+  fun maximize_window = MaximizeWindow
+  fun minimize_window = MinimizeWindow
+  fun restore_window = RestoreWindow
+  fun set_window_icon = SetWindowIcon(image : Image)
+  fun set_window_icons = SetWindowIcons(images : Image*, count : LibC::Int)
+
+  fun set_window_title = SetWindowTitle(title : LibC::Char*)
+  fun set_window_position = SetWindowPosition(x : LibC::Int, y : LibC::Int)
+  fun set_window_monitor = SetWindowMonitor(monitor : LibC::Int)
+  fun set_window_min_size = SetWindowMinSize(width : LibC::Int, height : LibC::Int)
+  fun set_window_max_size = SetWindowMaxSize(width : LibC::Int, height : LibC::Int)
+  fun set_window_size = SetWindowSize(width : LibC::Int, height : LibC::Int)
+  fun set_window_opacity = SetWindowOpacity(opacity : LibC::Float)
+  fun set_window_focused = SetWindowFocused
+
+  fun get_window_handle = GetWindowHandle : Void*
+  fun get_screen_width = GetScreenWidth : LibC::Int
+  fun get_screen_height = GetScreenHeight : LibC::Int
+  fun get_render_width = GetRenderWidth : LibC::Int
+  fun get_render_height = GetRenderHeight : LibC::Int
+  fun get_monitor_count = GetMonitorCount : LibC::Int
+  fun get_current_monitor = GetCurrentMonitor : LibC::Int
+  fun get_monitor_position = GetMonitorPosition(monitor : LibC::Int) : Vector2
+  fun get_monitor_width = GetMonitorWidth(monitor : LibC::Int) : LibC::Int
+  fun get_monitor_height = GetMonitorHeight(monitor : LibC::Int) : LibC::Int
+  fun get_monitor_physical_width = GetMonitorPhysicalWidth(monitor : LibC::Int) : LibC::Int
+  fun get_monitor_physical_height = GetMonitorPhysicalHeight(monitor : LibC::Int) : LibC::Int
+  fun get_monitor_refresh_rate = GetMonitorRefreshRate(monitor : LibC::Int) : LibC::Int
+  fun get_window_position = GetWindowPosition : Vector2
+  fun get_window_scale_dpi = GetWindowScaleDPI : Vector2
+  fun get_monitor_name = GetMonitorName(monitor : LibC::Int) : Char*
+  fun set_clipboard_text = SetClipboardText(text : LibC::Char*)
+  fun get_clipboard_text = GetClipboardText : Char*
+  fun get_clipboard_image = GetClipboardImage : Image
+  fun enable_event_waiting = EnableEventWaiting
+  fun disable_event_waiting = DisableEventWaiting
+
+  fun swap_screen_buffer = SwapScreenBuffer
+  fun poll_input_events = PollInputEvents
+  fun wait_time = WaitTime(seconds : LibC::Double)
+
+  fun show_cursor = ShowCursor
+  fun hide_cursor = HideCursor
+  fun cursor_hidden? = IsCursorHidden : Bool
+  fun enable_cursor = EnableCursor
+  fun disable_cursor = DisableCursor
+  fun cursor_on_screen? = IsCursorOnScreen
+
+  fun clear_background = ClearBackground(color : Color)
+  fun begin_drawing = BeginDrawing
+  fun end_drawing = EndDrawing
+  fun begin_mode_2d = BeginMode2D(camera : Camera2D)
+  fun end_mode_2d = EndMode2D
+  fun begin_mode_3d = BeginMode3D(camera : Camera3D)
+  fun end_mode_3d = EndMode3D
+  fun begin_texture_mode = BeginTextureMode(target : RenderTexture2D)
+  fun end_texture_mode = EndTextureMode
+  fun begin_shader_mode = BeginShaderMode(shader : Shader)
+  fun end_shader_mode = EndShaderMode
+  fun begin_blend_mode = BeginBlendMode(mode : LibC::Int)
+  fun end_blend_mode = EndBlendMode
+  fun begin_scissor_mode = BeginScissorMode(x : LibC::Int, y : LibC::Int, width : LibC::Int, height : LibC::Int)
+  fun end_scissor_mode = EndScissorMode
+  fun begin_vr_stereo_mode = BeginVrStereoMode(vr_stereo_config : VrStereoConfig)
+  fun end_vr_stereo_mode = EndVrStereoMode
+  fun load_vr_stereo_config = LoadVrStereoConfig(device : VrDeviceInfo) : VrStereoConfig
+  fun unload_vr_stereo_config = UnloadVrStereoConfig(config : VrStereoConfig)
+
+  fun load_shader = LoadShader(vs_file_name : LibC::Char*, fs_file_name : LibC::Char*) : Shader
+  fun load_shader_from_memory = LoadShaderFromMemory(vs_code : LibC::Char*, fs_code : LibC::Char*) : Shader
+  fun shader_valid? = IsShaderValid(shader : Shader) : Bool
+  fun get_shader_location = GetShaderLocation(shader : Shader, uniform_name : LibC::Char*) : LibC::Int
+  fun get_shader_location_attrib = GetShaderLocationAttrib(shader : Shader, attrib_name : LibC::Char*) : LibC::Int
+  fun set_shader_value = SetShaderValue(shader : Shader, loc_index : LibC::Int, value : Void*, uniform_type : LibC::Int)
+  fun set_shader_value_v = SetShaderValueV(shader : Shader, loc_index : LibC::Int, value : Void*, uniform_type : LibC::Int, count : LibC::Int)
+  fun set_shader_value_matrix = SetShaderValueMatrix(shader : Shader, loc_index : LibC::Int, mat : Matrix)
+  fun set_shader_value_texture = SetShaderValueTexture(shader : Shader, loc_index : LibC::Int, texture : Texture2D)
+  fun unload_shader = UnloadShader(shader : Shader)
+
+  fun get_screen_to_world_ray = GetScreenToWorldRay(position : Vector2, camera : Camera) : Ray
+  fun get_screen_to_world_ray_ex = GetScreenToWorldRayEx(position : Vector2, camera : Camera, width : LibC::Int, height : LibC::Int) : Ray
+  fun get_world_to_screen = GetWorldToScreen(position : Vector3, camera : Camera) : Vector2
+  fun get_world_to_screen_ex = GetWorldToScreenEx(position : Vector3, camera : Camera, width : LibC::Int, height : LibC::Int) : Vector2
+  fun get_world_to_screen_2d = GetWorldToScreen2D(position : Vector2, camera : Camera2D) : Vector2
+  fun get_screen_to_world_2d = GetScreenToWorld2D(position : Vector2, camera : Camera2D) : Vector2
+  fun get_camera_matrix = GetCameraMatrix(camera : Camera) : Matrix
+  fun get_camera_matrix_2d = GetCameraMatrix2D(camera : Camera2D) : Matrix
+
+  fun set_target_fps = SetTargetFPS(fps : LibC::Int)
+  fun get_fps = GetFPS : LibC::Int
+  fun get_frame_time = GetFrameTime : LibC::Float
+  fun get_time = GetTime : LibC::Double
+  fun get_random_value = GetRandomValue(min : LibC::Int, max : LibC::Int) : LibC::Int
+  fun set_random_seed = SetRandomSeed(seed : LibC::UInt)
+  fun load_random_sequence = LoadRandomSequence(count : LibC::UInt, min : LibC::Int, max : LibC::Int) : LibC::Int*
+  fun unload_random_sequence = UnloadRandomSequence(sequence : LibC::Int*)
+
+  fun take_screenshot = TakeScreenshot(file_name : LibC::Char*)
+  fun set_config_flags = SetConfigFlags(flags : LibC::UInt)
+  fun open_url = OpenUrl(url : LibC::Char*)
+
+  fun set_trace_log_level = SetTraceLogLevel(log_level : LibC::Int)
+  fun trace_log = TraceLog(log_level : LibC::Int, text : LibC::Char*, ...)
+
+  fun mem_alloc = MemAlloc(size : LibC::UInt) : Void*
+  fun mem_realloc = MemRealloc(ptr : Void*, size : LibC::UInt) : Void*
+  fun mem_free = MemFree(ptr : Void*)
+
+  fun load_file_data = LoadFileData(file_name : LibC::Char*, data_size : LibC::UInt*) : LibC::UChar*
+  fun unload_file_data = UnloadFileData(data : LibC::UChar*)
+  fun save_file_data? = SaveFileData(file_name : LibC::Char*, data : Void*, data_size : LibC::UInt) : Bool
+  fun export_data_as_code = ExportDataAsCode(data : LibC::Char*, data_size : LibC::UInt, filename : LibC::Char*) : Bool
+  fun load_file_text = LoadFileText(file_name : LibC::Char*) : LibC::Char*
+  fun unload_file_text = UnloadFileText(text : LibC::Char*)
+  fun save_file_text? = SaveFileText(file_name : LibC::Char*, text : LibC::Char*) : Bool
+
+  fun file_rename = FileRename(file_name : LibC::Char*, file_rename : LibC::Char*) : LibC::Int
+  fun file_remove = FileRemove(file_name : LibC::Char*) : LibC::Int
+  fun file_copy = FileCopy(src_path : LibC::Char*, dst_path : LibC::Char*) : LibC::Int
+  fun file_move = FileMove(src_path : LibC::Char*, dst_path : LibC::Char*) : LibC::Int
+  fun file_text_replace = FileTextReplace(file_name : LibC::Char*, search : LibC::Char*, replacement : LibC::Char*) : LibC::Int
+  fun file_text_find_index = FileTextFindIndex(file_name : LibC::Char*, search : LibC::Char*) : LibC::Int
+  fun file_exists? = FileExists(file_name : LibC::Char*) : Bool
+  fun directory_exists? = DirectoryExists(dir_path : LibC::Char*) : Bool
+  fun file_extension? = IsFileExtension(file_name : LibC::Char*, ext : LibC::Char*) : Bool
+  fun get_file_length = GetFileLength(file_name : LibC::Char*) : LibC::Int
+  fun get_file_mod_time = GetFileModTime(file_name : LibC::Char*) : LibC::Long
+  fun get_file_extension = GetFileExtension(file_name : LibC::Char*) : LibC::Char*
+  fun get_file_name = GetFileName(file_path : LibC::Char*) : LibC::Char*
+  fun get_file_name_without_ext = GetFileNameWithoutExt(file_path : LibC::Char*) : LibC::Char*
+  fun get_directory_path = GetDirectoryPath(file_path : LibC::Char*) : LibC::Char*
+  fun get_prev_directory_path = GetPrevDirectoryPath(dir_path : LibC::Char*) : LibC::Char*
+  fun get_working_directory = GetWorkingDirectory : LibC::Char*
+  fun get_application_directory = GetApplicationDirectory : LibC::Char*
+  fun make_directory = MakeDirectory(dir_path : LibC::Char*) : LibC::Int
+  fun change_directory = ChangeDirectory(dir_path : LibC::Char*) : Bool
+  fun path_file? = IsPathFile(path : LibC::Char*) : Bool
+  fun file_name_valid? = IsFileNameValid(file_name : LibC::Char*) : Bool
+  fun load_directory_files = LoadDirectoryFiles(dir_path : LibC::Char*) : FilePathList
+  fun load_directory_files_ex = LoadDirectoryFilesEx(base_path : LibC::Char*, filter : LibC::Char*, scan_subdirs : Bool) : FilePathList
+
+  fun unload_directory_files = UnloadDirectoryFiles(files : FilePathList)
+  fun file_dropped? = IsFileDropped : Bool
+  fun load_dropped_files = LoadDroppedFiles : FilePathList
+  fun unload_dropped_files = UnloadDroppedFiles(files : FilePathList)
+  fun get_directory_file_count = GetDirectoryFileCount(dir_path : LibC::Char*) : LibC::UInt
+  fun get_directory_file_count_ex = GetDirectoryFileCountEx(base_path : LibC::Char*, filter : LibC::Char*, scan_subdirs : Bool) : LibC::UInt
+
+  fun compress_data = CompressData(data : LibC::UChar*, data_length : LibC::Int, comp_data_length : LibC::Int*) : LibC::UChar*
+  fun decompress_data = DecompressData(comp_data : LibC::UChar*, comp_data_length : LibC::Int, data_length : LibC::Int*) : LibC::UChar*
+  fun encode_data_base64 = EncodeDataBase64(data : LibC::UChar*, data_length : LibC::Int, output_length : LibC::Int*) : LibC::Char*
+  fun decode_data_base64 = DecodeDataBase64(data : LibC::Char*, output_length : LibC::Int*) : LibC::UChar*
+  fun compute_crc32 = ComputeCRC32(data : LibC::UChar*, data_size : LibC::Int) : LibC::UInt
+  fun compute_md5 = ComputeMD5(data : LibC::UChar*, data_size : LibC::Int) : LibC::UInt*
+  fun compute_sha1 = ComputeSHA1(data : LibC::UChar*, data_size : LibC::Int) : LibC::UInt*
+  fun compute_sha256 = ComputeSHA256(data : LibC::UChar*, data_size : LibC::Int) : LibC::UInt*
+
+  fun load_automation_event_list = LoadAutomationEventList(filename : LibC::Char*) : AutomationEventList
+  fun unload_automation_event_list = UnloadAutomationEventList(list : AutomationEventList*)
+  fun export_automation_event_list = ExportAutomationEventList(list : AutomationEventList, filename : LibC::Char*) : Bool
+  fun set_automation_event_list = SetAutomationEventList(list : AutomationEventList*)
+  fun set_automation_event_base_frame = SetAutomationEventBaseFrame(frame : LibC::Int)
+  fun start_automation_event_recording = StartAutomationEventRecording
+  fun stop_automation_event_recording = StopAutomationEventRecording
+  fun play_automation_event_recording = PlayAutomationEventRecording(event : AutomationEvent)
+
+  fun key_pressed? = IsKeyPressed(key : LibC::Int) : Bool
+  fun key_pressed_repeat? = IsKeyPressedRepeat(key : LibC::Int) : Bool
+  fun key_down? = IsKeyDown(key : LibC::Int) : Bool
+  fun key_released? = IsKeyReleased(key : LibC::Int) : Bool
+  fun key_up? = IsKeyUp(key : LibC::Int) : Bool
+  fun set_exit_key = SetExitKey(key : LibC::Int)
+  fun get_key_pressed = GetKeyPressed : LibC::Int
+  fun get_char_pressed = GetCharPressed : LibC::Int
+  fun get_key_name = GetKeyName(key : LibC::Int) : LibC::Char*
+  fun gamepad_available? = IsGamepadAvailable(gamepad : LibC::Int) : Bool
+  fun get_gamepad_name = GetGamepadName(gamepad : LibC::Int) : LibC::Char*
+  fun gamepad_button_pressed? = IsGamepadButtonPressed(gamepad : LibC::Int, button : LibC::Int) : Bool
+  fun gamepad_button_down? = IsGamepadButtonDown(gamepad : LibC::Int, button : LibC::Int) : Bool
+  fun gamepad_button_released? = IsGamepadButtonReleased(gamepad : LibC::Int, button : LibC::Int) : Bool
+  fun gamepad_button_up? = IsGamepadButtonUp(gamepad : LibC::Int, button : LibC::Int) : Bool
+  fun get_gamepad_button_pressed = GetGamepadButtonPressed : LibC::Int
+  fun get_gamepad_axis_count = GetGamepadAxisCount(gamepad : LibC::Int) : LibC::Int
+  fun get_gamepad_axis_movement = GetGamepadAxisMovement(gamepad : LibC::Int, axis : LibC::Int) : LibC::Float
+  fun set_gamepad_mappings = SetGamepadMappings(mappings : LibC::Char*) : LibC::Int
+  fun set_gamepad_vibration = SetGamepadVibration(gamepad : LibC::Int, left_motor : LibC::Float, right_motor : LibC::Float, duration : LibC::Float)
+  fun mouse_button_pressed? = IsMouseButtonPressed(button : LibC::Int) : Bool
+  fun mouse_button_down? = IsMouseButtonDown(button : LibC::Int) : Bool
+  fun mouse_button_released? = IsMouseButtonReleased(button : LibC::Int) : Bool
+  fun mouse_button_up? = IsMouseButtonUp(button : LibC::Int) : Bool
+  fun get_mouse_x = GetMouseX : LibC::Int
+  fun get_mouse_y = GetMouseY : LibC::Int
+  fun get_mouse_position = GetMousePosition : Vector2
+  fun get_mouse_delta = GetMouseDelta : Vector2
+  fun set_mouse_position = SetMousePosition(x : LibC::Int, y : LibC::Int)
+  fun set_mouse_offset = SetMouseOffset(offset_x : LibC::Int, offset_y : LibC::Int)
+  fun set_mouse_scale = SetMouseScale(scale_x : LibC::Float, scale_y : LibC::Float)
+  fun get_mouse_wheel_move = GetMouseWheelMove : LibC::Float
+  fun get_mouse_wheel_move_v = GetMouseWheelMoveV : Vector2
+  fun set_mouse_cursor = SetMouseCursor(cursor : LibC::Int)
+  fun get_touch_x = GetTouchX : LibC::Int
+  fun get_touch_y = GetTouchY : LibC::Int
+  fun get_touch_position = GetTouchPosition(index : LibC::Int) : Vector2
+  fun get_touch_point_id = GetTouchPointId(index : LibC::Int) : LibC::Int
+  fun get_touch_point_count = GetTouchPointCount : LibC::Int
+  fun set_gestures_enabled = SetGesturesEnabled(flags : LibC::UInt)
+  fun gesture_detected? = IsGestureDetected(gesture : LibC::UInt) : Bool
+  fun get_gesture_detected = GetGestureDetected : LibC::Int
+  fun get_gesture_hold_duration = GetGestureHoldDuration : LibC::Float
+  fun get_gesture_drag_vector = GetGestureDragVector : Vector2
+  fun get_gesture_drag_angle = GetGestureDragAngle : LibC::Float
+  fun get_gesture_pinch_vector = GetGesturePinchVector : Vector2
+  fun get_gesture_pinch_angle = GetGesturePinchAngle : LibC::Float
+  fun update_camera = UpdateCamera(camera : Camera*, mode : CameraMode)
+  fun update_camera_pro = UpdateCameraPro(camera : Camera*, movement : Vector3, rotation : Vector3, zoom : LibC::Float)
+
+  fun set_shapes_texture = SetShapesTexture(texture : Texture2D, source : Rectangle)
+  fun get_shapes_texture = GetShapesTexture : Texture2D
+  fun get_shapes_texture_rectangle = GetShapesTextureRectangle : Rectangle
+
+  fun draw_pixel = DrawPixel(pos_x : LibC::Int, pos_y : LibC::Int, color : Color)
+  fun draw_pixel_v = DrawPixelV(position : Vector2, color : Color)
+  fun draw_line = DrawLine(start_pos_x : LibC::Int, start_pos_y : LibC::Int, end_pos_x : LibC::Int, end_pos_y : LibC::Int, color : Color)
+  fun draw_line_v = DrawLineV(start_pos : Vector2, end_pos : Vector2, color : Color)
+  fun draw_line_ex = DrawLineEx(start_pos : Vector2, end_pos : Vector2, thick : LibC::Float, color : Color)
+  fun draw_line_bezier = DrawLineBezier(start_pos : Vector2, end_pos : Vector2, thick : LibC::Float, color : Color)
+  fun draw_line_strip = DrawLineStrip(points : Vector2*, point_count : LibC::Int, color : Color)
+  fun draw_line_dashed = DrawLineDashed(start_pos : Vector2, end_pos : Vector2, thick : LibC::Float, color : Color)
+
+  fun draw_spline_linear = DrawSplineLinear(points : Vector2*, point_count : LibC::Int, thick : LibC::Float, color : Color)
+  fun draw_spline_basis = DrawSplineBasis(points : Vector2*, point_count : LibC::Int, thick : LibC::Float, color : Color)
+  fun draw_spline_catmull_rom = DrawSplineCatmullRom(points : Vector2*, point_count : LibC::Int, thick : LibC::Float, color : Color)
+  fun draw_spline_bezier_quadratic = DrawSplineBezierQuadratic(points : Vector2*, point_count : LibC::Int, thick : LibC::Float, color : Color)
+  fun draw_spline_bezier_cubic = DrawSplineBezierCubic(points : Vector2*, point_count : LibC::Int, thick : LibC::Float, color : Color)
+
+  fun draw_spline_segment_linear = DrawSplineSegmentLinear(p1 : Vector2, p2 : Vector2, thick : LibC::Float, color : Color)
+  fun draw_spline_segment_basis = DrawSplineSegmentBasis(p1 : Vector2, p2 : Vector2, p3 : Vector2, p4 : Vector2, thick : LibC::Float, color : Color)
+  fun draw_spline_segment_catmull_rom = DrawSplineSegmentCatmullRom(p1 : Vector2, p2 : Vector2, p3 : Vector2, p4 : Vector2, thick : LibC::Float, color : Color)
+  fun draw_spline_segment_bezier_quadratic = DrawSplineSegmentBezierQuadratic(p1 : Vector2, c2 : Vector2, p3 : Vector2, thick : LibC::Float, color : Color)
+  fun draw_spline_segment_bezier_cubic = DrawSplineSegmentBezierCubic(p1 : Vector2, c2 : Vector2, c3 : Vector2, p4 : Vector2, thick : LibC::Float, color : Color)
+
+  fun get_spline_point_linear = GetSplinePointLinear(start_pos : Vector2, end_pos : Vector2, t : LibC::Float) : Vector2
+  fun get_spline_point_basis = GetSplinePointBasis(p1 : Vector2, p2 : Vector2, p3 : Vector2, p4 : Vector2, t : LibC::Float) : Vector2
+  fun get_spline_point_catmull_rom = GetSplinePointCatmullRom(p1 : Vector2, p2 : Vector2, p3 : Vector2, p4 : Vector2, t : LibC::Float) : Vector2
+  fun get_spline_point_bezier_quad = GetSplinePointBezierQuad(p1 : Vector2, c2 : Vector2, p3 : Vector2, t : LibC::Float) : Vector2
+  fun get_spline_point_bezier_cubic = GetSplinePointBezierCubic(p1 : Vector2, c2 : Vector2, c3 : Vector2, p4 : Vector2, t : LibC::Float) : Vector2
+
+  fun draw_circle = DrawCircle(center_x : LibC::Int, center_y : LibC::Int, radius : LibC::Float, color : Color)
+  fun draw_circle_v = DrawCircleV(center : Vector2, radius : LibC::Float, color : Color)
+  fun draw_circle_sector = DrawCircleSector(center : Vector2, radius : LibC::Float, start_angle : LibC::Float, end_angle : LibC::Float, segments : LibC::Int, color : Color)
+  fun draw_circle_sector_lines = DrawCircleSectorLines(center : Vector2, radius : LibC::Float, start_angle : LibC::Float, end_angle : LibC::Float, segments : LibC::Int, color : Color)
+  fun draw_circle_gradient = DrawCircleGradient(center_x : LibC::Int, center_y : LibC::Int, radius : LibC::Float, color1 : Color, color2 : Color)
+  fun draw_circle_lines = DrawCircleLines(center_x : LibC::Int, center_y : LibC::Int, radius : LibC::Float, color : Color)
+  fun draw_ellipse = DrawEllipse(center_x : LibC::Int, center_y : LibC::Int, radius_h : LibC::Float, radius_v : LibC::Float, color : Color)
+  fun draw_ellipse_v = DrawEllipseV(center : Vector2, radius_h : LibC::Float, radius_v : LibC::Float, color : Color)
+  fun draw_ellipse_lines = DrawEllipseLines(center_x : LibC::Int, center_y : LibC::Int, radius_h : LibC::Float, radius_v : LibC::Float, color : Color)
+  fun draw_ellipse_lines_v = DrawEllipseLinesV(center : Vector2, radius_h : LibC::Float, radius_v : LibC::Float, color : Color)
+  fun draw_ring = DrawRing(center : Vector2, inner_radius : LibC::Float, outer_radius : LibC::Float, start_angle : LibC::Float, end_angle : LibC::Float, segments : LibC::Int, color : Color)
+  fun draw_ring_lines = DrawRingLines(center : Vector2, inner_radius : LibC::Float, outer_radius : LibC::Float, start_angle : LibC::Float, end_angle : LibC::Float, segments : LibC::Int, color : Color)
+  fun draw_rectangle = DrawRectangle(pos_x : LibC::Int, pos_y : LibC::Int, width : LibC::Int, height : LibC::Int, color : Color)
+  fun draw_rectangle_v = DrawRectangleV(position : Vector2, size : Vector2, color : Color)
+  fun draw_rectangle_rec = DrawRectangleRec(rec : Rectangle, color : Color)
+  fun draw_rectangle_pro = DrawRectanglePro(rec : Rectangle, origin : Vector2, rotation : LibC::Float, color : Color)
+  fun draw_rectangle_gradient_v = DrawRectangleGradientV(pos_x : LibC::Int, pos_y : LibC::Int, width : LibC::Int, height : LibC::Int, top : Color, bottom : Color)
+  fun draw_rectangle_gradient_h = DrawRectangleGradientH(pos_x : LibC::Int, pos_y : LibC::Int, width : LibC::Int, height : LibC::Int, left : Color, right : Color)
+  fun draw_rectangle_gradient_ex = DrawRectangleGradientEx(rec : Rectangle, top_left : Color, bottom_left : Color, bottom_right : Color, top_right : Color)
+  fun draw_rectangle_lines = DrawRectangleLines(pos_x : LibC::Int, pos_y : LibC::Int, width : LibC::Int, height : LibC::Int, color : Color)
+  fun draw_rectangle_lines_ex = DrawRectangleLinesEx(rec : Rectangle, line_thick : LibC::Float, color : Color)
+  fun draw_rectangle_rounded = DrawRectangleRounded(rec : Rectangle, roundness : LibC::Float, segments : LibC::Int, color : Color)
+  fun draw_rectangle_rounded_lines = DrawRectangleRoundedLines(rec : Rectangle, roundness : LibC::Float, segments : LibC::Int, color : Color)
+  fun draw_rectangle_rounded_lines_ex = DrawRectangleRoundedLinesEx(rec : Rectangle, roundness : LibC::Float, segments : LibC::Int, line_thick : LibC::Float, color : Color)
+  fun draw_triangle = DrawTriangle(v1 : Vector2, v2 : Vector2, v3 : Vector2, color : Color)
+  fun draw_triangle_lines = DrawTriangleLines(v1 : Vector2, v2 : Vector2, v3 : Vector2, color : Color)
+  fun draw_triangle_fan = DrawTriangleFan(points : Vector2*, point_count : LibC::Int, color : Color)
+  fun draw_triangle_strip = DrawTriangleStrip(points : Vector2*, point_count : LibC::Int, color : Color)
+  fun draw_poly = DrawPoly(center : Vector2, sides : LibC::Int, radius : LibC::Float, rotation : LibC::Float, color : Color)
+  fun draw_poly_lines = DrawPolyLines(center : Vector2, sides : LibC::Int, radius : LibC::Float, rotation : LibC::Float, color : Color)
+  fun draw_poly_lines_ex = DrawPolyLinesEx(center : Vector2, sides : LibC::Int, radius : LibC::Float, rotation : LibC::Float, line_thick : LibC::Float, color : Color)
+  fun check_collision_recs? = CheckCollisionRecs(rec1 : Rectangle, rec2 : Rectangle) : Bool
+  fun check_collision_circles? = CheckCollisionCircles(center1 : Vector2, radius1 : LibC::Float, center2 : Vector2, radius2 : LibC::Float) : Bool
+  fun check_collision_circle_rec? = CheckCollisionCircleRec(center : Vector2, radius : LibC::Float, rec : Rectangle) : Bool
+  fun check_collision_circle_line? = CheckCollisionCircleLine(center : Vector2, radius : LibC::Float, p1 : Vector2, p2 : Vector2) : Bool
+  fun check_collision_point_rec? = CheckCollisionPointRec(point : Vector2, rec : Rectangle) : Bool
+  fun check_collision_point_circle? = CheckCollisionPointCircle(point : Vector2, center : Vector2, radius : LibC::Float) : Bool
+  fun check_collision_point_triangle? = CheckCollisionPointTriangle(point : Vector2, p1 : Vector2, p2 : Vector2, p3 : Vector2) : Bool
+  fun check_collision_point_line? = CheckCollisionPointLine(point : Vector2, p1 : Vector2, p2 : Vector2, threshold : LibC::Int) : Bool
+  fun check_collision_point_poly? = CheckCollisionPointPoly(point : Vector2, points : Vector2*, points_length : LibC::Int) : Bool
+  fun check_collision_lines? = CheckCollisionLines(start_pos1 : Vector2, end_pos1 : Vector2, start_pos2 : Vector2, end_pos2 : Vector2, collision_point : Vector2*) : Bool
+  fun get_collision_rec = GetCollisionRec(rec1 : Rectangle, rec2 : Rectangle) : Rectangle
+  fun load_image = LoadImage(file_name : LibC::Char*) : Image
+  fun load_image_raw = LoadImageRaw(file_name : LibC::Char*, width : LibC::Int, height : LibC::Int, format : LibC::Int, header_size : LibC::Int) : Image
+  fun load_image_svg = LoadImageSvg(file_name_or_string : LibC::Char*, width : LibC::Int, height : LibC::Int) : Image
+  fun load_image_anim = LoadImageAnim(file_name : LibC::Char*, frames : LibC::Int*) : Image
+  fun load_image_anim_from_memory = LoadImageAnimFromMemory(file_type : LibC::Char*, file_data : LibC::UChar*, data_size : LibC::Int, frames : LibC::Int*) : Image
+  fun load_image_from_memory = LoadImageFromMemory(file_type : LibC::Char*, file_data : LibC::UChar*, data_size : LibC::Int) : Image
+  fun load_image_from_texture = LoadImageFromTexture(texture : Texture2D) : Image
+  fun load_image_from_screen = LoadImageFromScreen : Image
+  fun image_valid? = IsImageValid(image : Image) : Bool
+  fun unload_image = UnloadImage(image : Image)
+  fun export_image? = ExportImage(image : Image, file_name : LibC::Char*) : Bool
+  fun export_image_to_memory = ExportImageToMemory(image : Image, filetype : LibC::Char*, filesize : LibC::UChar*, datasize : LibC::Int) : LibC::UChar*
+  fun export_image_as_code? = ExportImageAsCode(image : Image, file_name : LibC::Char*) : Bool
+  fun gen_image_color = GenImageColor(width : LibC::Int, height : LibC::Int, color : Color) : Image
+  fun gen_image_gradient_linear = GenImageGradientLinear(width : LibC::Int, height : LibC::Int, direction : LibC::Int, start_color : Color, end_color : Color) : Image
+  fun gen_image_gradient_square = GenImageGradientSquare(width : LibC::Float, height : LibC::Float, density : LibC::Float, inner : Color, outer : Color) : Image
+
+  fun gen_image_gradient_radial = GenImageGradientRadial(width : LibC::Int, height : LibC::Int, density : LibC::Float, inner : Color, outer : Color) : Image
+  fun gen_image_checked = GenImageChecked(width : LibC::Int, height : LibC::Int, checks_x : LibC::Int, checks_y : LibC::Int, col1 : Color, col2 : Color) : Image
+  fun gen_image_white_noise = GenImageWhiteNoise(width : LibC::Int, height : LibC::Int, factor : LibC::Float) : Image
+  fun gen_image_perlin_noise = GenImagePerlinNoise(width : LibC::Int, height : LibC::Int, offset_x : LibC::Int, offset_y : LibC::Int, scale : LibC::Float) : Image
+  fun gen_image_cellular = GenImageCellular(width : LibC::Int, height : LibC::Int, tile_size : LibC::Int) : Image
+  fun gen_image_text = GenImageText(width : LibC::Int, height : LibC::Int, text : LibC::Char*) : Image
+
+  fun image_copy = ImageCopy(image : Image) : Image
+  fun image_from_image = ImageFromImage(image : Image, rec : Rectangle) : Image
+  fun image_from_channel = ImageFromChannel(image : Image, select_channel : LibC::Int) : Image
+  fun image_text = ImageText(text : LibC::Char*, font_size : LibC::Int, color : Color) : Image
+  fun image_text_ex = ImageTextEx(font : Font, text : LibC::Char*, font_size : LibC::Float, spacing : LibC::Float, tint : Color) : Image
+  fun image_format = ImageFormat(image : Image*, new_format : LibC::Int)
+  fun image_to_pot = ImageToPOT(image : Image*, fill : Color)
+  fun image_crop = ImageCrop(image : Image*, crop : Rectangle)
+  fun image_alpha_crop = ImageAlphaCrop(image : Image*, threshold : LibC::Float)
+  fun image_alpha_clear = ImageAlphaClear(image : Image*, color : Color, threshold : LibC::Float)
+  fun image_alpha_mask = ImageAlphaMask(image : Image*, alpha_mask : Image)
+  fun image_alpha_premultiply = ImageAlphaPremultiply(image : Image*)
+  fun image_blur_gaussian = ImageBlurGaussian(image : Image*, blur_size : LibC::Int)
+  fun image_kernel_convolution = ImageKernelConvolution(image : Image*, kernel : LibC::Float*, kernel_size : LibC::Int)
+  fun image_resize = ImageResize(image : Image*, new_width : LibC::Int, new_height : LibC::Int)
+  fun image_resize_nn = ImageResizeNN(image : Image*, new_width : LibC::Int, new_height : LibC::Int)
+  fun image_resize_canvas = ImageResizeCanvas(image : Image*, new_width : LibC::Int, new_height : LibC::Int, offset_x : LibC::Int, offset_y : LibC::Int, fill : Color)
+  fun image_mipmaps = ImageMipmaps(image : Image*)
+  fun image_dither = ImageDither(image : Image*, r_bpp : LibC::Int, g_bpp : LibC::Int, b_bpp : LibC::Int, a_bpp : LibC::Int)
+  fun image_flip_vertical = ImageFlipVertical(image : Image*)
+  fun image_flip_horizontal = ImageFlipHorizontal(image : Image*)
+  fun image_rotate = ImageRotate(image : Image*, degrees : LibC::Int)
+  fun image_rotate_cw = ImageRotateCW(image : Image*)
+  fun image_rotate_ccw = ImageRotateCCW(image : Image*)
+  fun image_color_tint = ImageColorTint(image : Image*, color : Color)
+  fun image_color_invert = ImageColorInvert(image : Image*)
+  fun image_color_grayscale = ImageColorGrayscale(image : Image*)
+  fun image_color_contrast = ImageColorContrast(image : Image*, contrast : LibC::Float)
+  fun image_color_brightness = ImageColorBrightness(image : Image*, brightness : LibC::Int)
+  fun image_color_replace = ImageColorReplace(image : Image*, color : Color, replace : Color)
+  fun load_image_colors = LoadImageColors(image : Image) : Color*
+  fun load_image_palette = LoadImagePalette(image : Image, max_palette_size : LibC::Int, color_count : LibC::Int*) : Color*
+  fun unload_image_colors = UnloadImageColors(colors : Color*)
+  fun unload_image_palette = UnloadImagePalette(colors : Color*)
+  fun get_image_alpha_border = GetImageAlphaBorder(image : Image, threshold : LibC::Float) : Rectangle
+  fun get_image_color = GetImageColor(image : Image, x : LibC::Int, y : LibC::Int) : Color
+  fun image_clear_background = ImageClearBackground(dst : Image*, color : Color)
+  fun image_draw_pixel = ImageDrawPixel(dst : Image*, pos_x : LibC::Int, pos_y : LibC::Int, color : Color)
+  fun image_draw_pixel_v = ImageDrawPixelV(dst : Image*, position : Vector2, color : Color)
+  fun image_draw_line = ImageDrawLine(dst : Image*, start_pos_x : LibC::Int, start_pos_y : LibC::Int, end_pos_x : LibC::Int, end_pos_y : LibC::Int, color : Color)
+  fun image_draw_line_v = ImageDrawLineV(dst : Image*, start : Vector2, end : Vector2, color : Color)
+  fun image_draw_line_ex = ImageDrawLineEx(dst : Image*, start : Vector2, end : Vector2, thick : LibC::Int, color : Color)
+  fun image_draw_circle = ImageDrawCircle(dst : Image*, center_x : LibC::Int, center_y : LibC::Int, radius : LibC::Int, color : Color)
+  fun image_draw_circle_v = ImageDrawCircleV(dst : Image*, center : Vector2, radius : LibC::Int, color : Color)
+  fun image_draw_circle_lines = ImageDrawCircle(dst : Image*, center_X : LibC::Int, center_y : LibC::Int, radius : LibC::Int, color : Color)
+  fun image_draw_circle_lines_v = ImageDrawCircleV(dst : Image*, center : Vector2, radius : LibC::Int, color : Color)
+  fun image_draw_rectangle = ImageDrawRectangle(dst : Image*, pos_x : LibC::Int, pos_y : LibC::Int, width : LibC::Int, height : LibC::Int, color : Color)
+  fun image_draw_rectangle_v = ImageDrawRectangleV(dst : Image*, position : Vector2, size : Vector2, color : Color)
+  fun image_draw_rectangle_rec = ImageDrawRectangleRec(dst : Image*, rec : Rectangle, color : Color)
+  fun image_draw_rectangle_lines = ImageDrawRectangleLines(dst : Image*, rec : Rectangle, thick : LibC::Int, color : Color)
+  fun image_draw_triangle = ImageDrawTriangle(dst : Image*, v1 : Vector2, v2 : Vector2, v3 : Vector2, color : Color)
+  fun image_draw_triangle_ex = ImageDrawTriangleEx(dst : Image*, v1 : Vector2, v2 : Vector2, v3 : Vector2, c1 : Color, c2 : Color, c3 : Color)
+  fun image_draw_triangle_lines = ImageDrawTriangleLines(dst : Image*, v1 : Vector2, v2 : Vector2, v3 : Vector2, color : Color)
+  fun image_draw_triangle_fan = ImageDrawTriangleFan(dst : Image*, points : Vector2*, point_count : LibC::Int, color : Color)
+  fun image_draw_triangle_strip = ImageDrawTriangleStrip(dst : Image*, points : Vector2*, point_count : LibC::Int, color : Color)
+  fun image_draw = ImageDraw(dst : Image*, src : Image, src_rec : Rectangle, dst_rec : Rectangle, tint : Color)
+  fun image_draw_text = ImageDrawText(dst : Image*, text : LibC::Char*, pos_x : LibC::Int, pos_y : LibC::Int, font_size : LibC::Int, color : Color)
+  fun image_draw_text_ex = ImageDrawTextEx(dst : Image*, font : Font, text : LibC::Char*, position : Vector2, font_size : LibC::Float, spacing : LibC::Float, tint : Color)
+  fun load_texture = LoadTexture(file_name : LibC::Char*) : Texture2D
+  fun load_texture_from_image = LoadTextureFromImage(image : Image) : Texture2D
+  fun load_texture_cubemap = LoadTextureCubemap(image : Image, layout : LibC::Int) : TextureCubemap
+  fun load_render_texture = LoadRenderTexture(width : LibC::Int, height : LibC::Int) : RenderTexture2D
+  fun texture_ready? = IsTextureReady(texture : Texture2D) : Bool
+  fun unload_texture = UnloadTexture(texture : Texture2D)
+  fun render_texture_ready? = IsRenderTextureReady(render_texture : RenderTexture2D) : Bool
+  fun unload_render_texture = UnloadRenderTexture(target : RenderTexture2D)
+  fun update_texture = UpdateTexture(texture : Texture2D, pixels : Void*)
+  fun update_texture_rec = UpdateTextureRec(texture : Texture2D, rec : Rectangle, pixels : Void*)
+  fun gen_texture_mipmaps = GenTextureMipmaps(texture : Texture2D*)
+  fun set_texture_filter = SetTextureFilter(texture : Texture2D, filter : LibC::Int)
+  fun set_texture_wrap = SetTextureWrap(texture : Texture2D, wrap : LibC::Int)
+  fun draw_texture = DrawTexture(texture : Texture2D, pos_x : LibC::Int, pos_y : LibC::Int, tint : Color)
+  fun draw_texture_v = DrawTextureV(texture : Texture2D, position : Vector2, tint : Color)
+  fun draw_texture_ex = DrawTextureEx(texture : Texture2D, position : Vector2, rotation : LibC::Float, scale : LibC::Float, tint : Color)
+  fun draw_texture_rec = DrawTextureRec(texture : Texture2D, source : Rectangle, position : Vector2, tint : Color)
+  fun draw_texture_pro = DrawTexturePro(texture : Texture2D, source : Rectangle, dest : Rectangle, origin : Vector2, rotation : LibC::Float, tint : Color)
+  fun draw_texture_n_patch = DrawTextureNPatch(texture : Texture2D, n_patch_info : NPatchInfo, dest : Rectangle, origin : Vector2, rotation : LibC::Float, tint : Color)
+  fun color_is_equal? = ColorIsEqual(col1 : Color, col2 : Color) : Bool
+  fun fade = Fade(color : Color, alpha : LibC::Float) : Color
+  fun color_to_int = ColorToInt(color : Color) : LibC::Int
+  fun color_normalize = ColorNormalize(color : Color) : Vector4
+  fun color_from_normalized = ColorFromNormalized(normalized : Vector4) : Color
+  fun color_to_hsv = ColorToHSV(color : Color) : Vector3
+  fun color_from_hsv = ColorFromHSV(hue : LibC::Float, saturation : LibC::Float, value : LibC::Float) : Color
+  fun color_tint = ColorTint(color : Color, tint : Color) : Color
+  fun color_brightness = ColorBrightness(color : Color, factor : LibC::Float) : Color
+  fun color_contrast = ColorContrast(color : Color, contrast : LibC::Float) : Color
+  fun color_alpha = ColorAlpha(color : Color, alpha : LibC::Float) : Color
+  fun color_alpha_blend = ColorAlphaBlend(dst : Color, src : Color, tint : Color) : Color
+  fun get_color = GetColor(hex_value : LibC::UInt) : Color
+  fun get_pixel_color = GetPixelColor(src_ptr : Void*, format : LibC::Int) : Color
+  fun set_pixel_color = SetPixelColor(dst_ptr : Void*, color : Color, format : LibC::Int)
+  fun get_pixel_data_size = GetPixelDataSize(width : LibC::Int, height : LibC::Int, format : LibC::Int) : LibC::Int
+  fun get_font_default = GetFontDefault : Font
+  fun load_font = LoadFont(file_name : LibC::Char*) : Font
+  fun load_font_ex = LoadFontEx(file_name : LibC::Char*, font_size : LibC::Int, codepoints : LibC::Int*, codepoint_count : LibC::Int) : Font
+  fun load_font_from_image = LoadFontFromImage(image : Image, key : Color, first_char : LibC::Int) : Font
+  fun load_font_from_memory = LoadFontFromMemory(file_type : LibC::Char*, file_data : LibC::UChar*, data_size : LibC::Int, font_size : LibC::Int, codepoints : LibC::Int*, codepoint_count : LibC::Int) : Font
+  fun font_valid? = IsFontValid(font : Font) : Bool
+  fun load_font_data = LoadFontData(file_data : LibC::UChar*, data_size : LibC::Int, font_size : LibC::Int, codepoints : LibC::Int*, codepoint_count : LibC::Int, type : LibC::Int, glyph_count : LibC::Int*) : GlyphInfo*
+  fun gen_image_font_atlas = GenImageFontAtlas(glyphs : GlyphInfo*, glyph_recs : Rectangle**, glyph_count : LibC::Int, font_size : LibC::Int, padding : LibC::Int, pack_method : LibC::Int) : Image
+  fun unload_font_data = UnloadFontData(glyphs : GlyphInfo*, glyph_count : LibC::Int)
+  fun unload_font = UnloadFont(font : Font)
+  fun export_font_as_code = ExportFontAsCode(font : Font, filename : LibC::Char*) : Bool
+  fun draw_fps = DrawFPS(pos_x : LibC::Int, pos_y : LibC::Int)
+  fun draw_text = DrawText(text : LibC::Char*, pos_x : LibC::Int, pos_y : LibC::Int, font_size : LibC::Int, color : Color)
+  fun draw_text_ex = DrawTextEx(font : Font, text : LibC::Char*, position : Vector2, font_size : LibC::Float, spacing : LibC::Float, tint : Color)
+  fun draw_text_pro = DrawTextPro(font : Font, text : LibC::Char*, position : Vector2, origin : Vector2, rotation : LibC::Float, font_size : LibC::Float, spacing : LibC::Float, tint : Color)
+  fun draw_text_codepoint = DrawTextCodepoint(font : Font, codepoint : LibC::Int, position : Vector2, font_size : LibC::Float, tint : Color)
+  fun draw_text_codepoints = DrawTextCodepoints(font : Font, codepoints : LibC::Int*, codepoint_count : LibC::Int, position : Vector2, font_size : LibC::Float, spacing : LibC::Float, tint : Color)
+
+  fun set_text_line_spacing = SetTextLineSpacing(spacing : LibC::Int)
+  fun measure_text = MeasureText(text : LibC::Char*, font_size : LibC::Int) : LibC::Int
+  fun measure_text_ex = MeasureTextEx(font : Font, text : LibC::Char*, font_size : LibC::Float, spacing : LibC::Float) : Vector2
+  fun measure_text_codepoints = MeasureTextCodepoints(font : Font, codepoints : LibC::Int*, length : LibC::Int, font_size : LibC::Float, spacing : LibC::Float) : Vector2
+  fun get_glyph_index = GetGlyphIndex(font : Font, codepoint : LibC::Int) : LibC::Int
+  fun get_glyph_info = GetGlyphInfo(font : Font, codepoint : LibC::Int) : GlyphInfo
+  fun get_glyph_atlas_rec = GetGlyphAtlasRec(font : Font, codepoint : LibC::Int) : Rectangle
+  fun load_utf8 = LoadUTF8(codepoints : LibC::Int*, length : LibC::Int) : LibC::Char*
+  fun unload_utf8 = UnloadUTF8(text : LibC::Char*)
+  fun load_codepoints = LoadCodepoints(text : LibC::Char*, count : LibC::Int*) : LibC::Int*
+  fun unload_codepoints = UnloadCodepoints(codepoints : LibC::Int*)
+  fun get_codepoint_count = GetCodepointCount(text : LibC::Char*) : LibC::Int
+  fun get_codepoint = GetCodepoint(text : LibC::Char*, bytes_processed : LibC::Int*) : LibC::Int
+  fun get_codepoint_next = GetCodepointNext(text : LibC::Char*, codepoint_size : LibC::Int*) : LibC::Int
+  fun get_codepoint_previous = GetCodepointPrevious(text : LibC::Char*, codepoint_size : LibC::Int*) : LibC::Int
+  fun codepoint_to_utf8 = CodepointToUTF8(codepoint : LibC::Int, utf8_size : LibC::Int*) : LibC::Char*
+
+  fun load_text_lines = LoadTextLines(text : LibC::Char*, count : LibC::Int) : LibC::Char**
+  fun unload_text_lines = UnloadTextLines(text : LibC::Char**, line_count : LibC::Int)
+  fun text_copy = TextCopy(dst : LibC::Char*, src : LibC::Char*) : LibC::Int
+  fun text_is_equal? = TextIsEqual(text1 : LibC::Char*, text2 : LibC::Char*) : Bool
+  fun text_length = TextLength(text : LibC::Char*) : LibC::UInt
+  fun text_format = TextFormat(text : LibC::Char*, ...) : LibC::Char*
+  fun text_subtext = TextSubtext(text : LibC::Char*, position : LibC::Int, length : LibC::Int) : LibC::Char*
+
+  fun text_remove_spaces = TextRemoveSpaces(text : LibC::Char*) : LibC::Char*
+  fun get_text_between = GetTextBetween(text : LibC::Char*, begin : LibC::Char*, end : LibC::Char*) : LibC::Char*
+  fun text_replace = TextReplace(text : LibC::Char*, search : LibC::Char*, replacement : LibC::Char*) : LibC::Char*
+  fun text_replace_alloc = TextReplaceAlloc(text : LibC::Char*, search : LibC::Char*, replacement : LibC::Char*) : LibC::Char*
+  fun text_replace_between = TextReplaceBetween(text : LibC::Char*, begin : LibC::Char*, end : LibC::Char*, replacement : LibC::Char*) : LibC::Char*
+  fun text_replace_between_alloc = TextReplaceBetweenAlloc(text : LibC::Char*, begin : LibC::Char*, end : LibC::Char*, replacement : LibC::Char*) : LibC::Char*
+
+  fun text_insert = TextInsert(text : LibC::Char*, insert : LibC::Char*, position : LibC::Int) : LibC::Char*
+  fun text_insert_alloc = TextInsertAlloc(text : LibC::Char*, insert : LibC::Char*, position : LibC::Int) : LibC::Char*
+
+  fun text_join = TextJoin(text_list : LibC::Char**, count : LibC::Int, delimiter : LibC::Char*) : LibC::Char*
+  fun text_split = TextSplit(text : LibC::Char*, delimiter : LibC::Char, count : LibC::Int*) : LibC::Char**
+
+  fun text_append = TextAppend(text : LibC::Char*, append : LibC::Char*, position : LibC::Int*)
+  fun text_find_index = TextFindIndex(text : LibC::Char*, search : LibC::Char*) : LibC::Int
+  fun text_to_upper = TextToUpper(text : LibC::Char*) : LibC::Char*
+  fun text_to_lower = TextToLower(text : LibC::Char*) : LibC::Char*
+  fun text_to_pascal = TextToPascal(text : LibC::Char*) : LibC::Char*
+  fun text_to_snake = TextToSnake(text : LibC::Char*) : LibC::Char*
+  fun text_to_camel = TextToCamel(text : LibC::Char*) : LibC::Char*
+  fun text_to_integer = TextToInteger(text : LibC::Char*) : LibC::Int
+  fun text_to_float = TextToFloat(text : LibC::Char*) : LibC::Float
+
+  fun draw_line_3d = DrawLine3D(start_pos : Vector3, end_pos : Vector3, color : Color)
+  fun draw_point_3d = DrawPoint3D(position : Vector3, color : Color)
+  fun draw_circle_3d = DrawCircle3D(center : Vector3, radius : LibC::Float, rotation_axis : Vector3, rotation_angle : LibC::Float, color : Color)
+  fun draw_triangle_3d = DrawTriangle3D(v1 : Vector3, v2 : Vector3, v3 : Vector3, color : Color)
+  fun draw_triangle_strip_3d = DrawTriangleStrip3D(points : Vector3*, point_count : LibC::Int, color : Color)
+  fun draw_cube = DrawCube(position : Vector3, width : LibC::Float, height : LibC::Float, length : LibC::Float, color : Color)
+  fun draw_cube_v = DrawCubeV(position : Vector3, size : Vector3, color : Color)
+  fun draw_cube_wires = DrawCubeWires(position : Vector3, width : LibC::Float, height : LibC::Float, length : LibC::Float, color : Color)
+  fun draw_cube_wires_v = DrawCubeWiresV(position : Vector3, size : Vector3, color : Color)
+  fun draw_sphere = DrawSphere(center_pos : Vector3, radius : LibC::Float, color : Color)
+  fun draw_sphere_ex = DrawSphereEx(center_pos : Vector3, radius : LibC::Float, rings : LibC::Int, slices : LibC::Int, color : Color)
+  fun draw_sphere_wires = DrawSphereWires(center_pos : Vector3, radius : LibC::Float, rings : LibC::Int, slices : LibC::Int, color : Color)
+  fun draw_cylinder = DrawCylinder(position : Vector3, radius_top : LibC::Float, radius_bottom : LibC::Float, height : LibC::Float, slices : LibC::Int, color : Color)
+  fun draw_cylinder_ex = DrawCylinderEx(start_pos : Vector3, end_pos : Vector3, start_radius : LibC::Float, end_radius : LibC::Float, sides : LibC::Int, color : Color)
+  fun draw_cylinder_wires = DrawCylinderWires(position : Vector3, radius_top : LibC::Float, radius_bottom : LibC::Float, height : LibC::Float, slices : LibC::Int, color : Color)
+  fun draw_cylinder_wires_ex = DrawCylinderWiresEx(start_pos : Vector3, end_pos : Vector3, start_radius : LibC::Float, end_radius : LibC::Float, sides : LibC::Int, color : Color)
+  fun draw_capsule = DrawCapsule(start_position : Vector3, end_position : Vector3, radius : LibC::Float, slices : LibC::Int, rings : LibC::Int, color : Color)
+  fun draw_capsule_wires = DrawCapsuleWires(start_position : Vector3, end_position : Vector3, radius : LibC::Float, slices : LibC::Int, rings : LibC::Int, color : Color)
+  fun draw_plane = DrawPlane(center_pos : Vector3, size : Vector2, color : Color)
+  fun draw_ray = DrawRay(ray : Ray, color : Color)
+  fun draw_grid = DrawGrid(slices : LibC::Int, spacing : LibC::Float)
+  fun load_model = LoadModel(file_name : LibC::Char*) : Model
+  fun load_model_from_mesh = LoadModelFromMesh(mesh : Mesh) : Model
+  fun model_valid? = IsModelValid(model : Model) : Bool
+  fun unload_model = UnloadModel(model : Model)
+  fun unload_model_keep_meshes = UnloadModelKeepMeshes(model : Model)
+  fun get_model_bounding_box = GetModelBoundingBox(model : Model) : BoundingBox
+  fun draw_model = DrawModel(model : Model, position : Vector3, scale : LibC::Float, tint : Color)
+  fun draw_model_ex = DrawModelEx(model : Model, position : Vector3, rotation_axis : Vector3, rotation_angle : LibC::Float, scale : Vector3, tint : Color)
+  fun draw_model_wires = DrawModelWires(model : Model, position : Vector3, scale : LibC::Float, tint : Color)
+  fun draw_model_wires_ex = DrawModelWiresEx(model : Model, position : Vector3, rotation_axis : Vector3, rotation_angle : LibC::Float, scale : Vector3, tint : Color)
+  fun draw_bounding_box = DrawBoundingBox(box : BoundingBox, color : Color)
+  fun draw_billboard = DrawBillboard(camera : Camera, texture : Texture2D, position : Vector3, scale : LibC::Float, tint : Color)
+  fun draw_billboard_rec = DrawBillboardRec(camera : Camera, texture : Texture2D, source : Rectangle, position : Vector3, size : Vector2, tint : Color)
+  fun draw_billboard_pro = DrawBillboardPro(camera : Camera, texture : Texture2D, source : Rectangle, position : Vector3, up : Vector3, size : Vector2, origin : Vector2, rotation : LibC::Float, tint : Color)
+  fun upload_mesh = UploadMesh(mesh : Mesh*, dynamic : Bool)
+  fun update_mesh_buffer = UpdateMeshBuffer(mesh : Mesh, index : LibC::Int, data : Void*, data_size : LibC::Int, offset : LibC::Int)
+  fun unload_mesh = UnloadMesh(mesh : Mesh)
+  fun draw_mesh = DrawMesh(mesh : Mesh, material : Material, transform : Matrix)
+  fun draw_mesh_instanced = DrawMeshInstanced(mesh : Mesh, material : Material, transforms : Matrix*, instances : LibC::Int)
+  fun get_mesh_bounding_box = GetMeshBoundingBox(mesh : Mesh) : BoundingBox
+  fun gen_mesh_tangents = GenMeshTangents(mesh : Mesh*)
+  fun export_mesh? = ExportMesh(mesh : Mesh, file_name : LibC::Char*) : Bool
+  fun export_mesh_as_code? = ExportMeshAsCode(mesh : Mesh, file_name : LibC::Char*) : Bool
+  fun gen_mesh_poly = GenMeshPoly(sides : LibC::Int, radius : LibC::Float) : Mesh
+  fun gen_mesh_plane = GenMeshPlane(width : LibC::Float, length : LibC::Float, res_x : LibC::Int, res_z : LibC::Int) : Mesh
+  fun gen_mesh_cube = GenMeshCube(width : LibC::Float, height : LibC::Float, length : LibC::Float) : Mesh
+  fun gen_mesh_sphere = GenMeshSphere(radius : LibC::Float, rings : LibC::Int, slices : LibC::Int) : Mesh
+  fun gen_mesh_hemi_sphere = GenMeshHemiSphere(radius : LibC::Float, rings : LibC::Int, slices : LibC::Int) : Mesh
+  fun gen_mesh_cylinder = GenMeshCylinder(radius : LibC::Float, height : LibC::Float, slices : LibC::Int) : Mesh
+  fun gen_mesh_cone = GenMeshCone(radius : LibC::Float, height : LibC::Float, slices : LibC::Int) : Mesh
+  fun gen_mesh_torus = GenMeshTorus(radius : LibC::Float, size : LibC::Float, rad_seg : LibC::Int, sides : LibC::Int) : Mesh
+  fun gen_mesh_knot = GenMeshKnot(radius : LibC::Float, size : LibC::Float, rad_seg : LibC::Int, sides : LibC::Int) : Mesh
+  fun gen_mesh_heightmap = GenMeshHeightmap(heightmap : Image, size : Vector3) : Mesh
+  fun gen_mesh_cubicmap = GenMeshCubicmap(cubicmap : Image, cube_size : Vector3) : Mesh
+  fun load_materials = LoadMaterials(file_name : LibC::Char*, material_count : LibC::Int*) : Material*
+  fun load_material_default = LoadMaterialDefault : Material
+  fun material_valid? = IsMaterialValid(material : Material) : Bool
+  fun unload_material = UnloadMaterial(material : Material)
+  fun set_material_texture = SetMaterialTexture(material : Material*, map_type : LibC::Int, texture : Texture2D)
+  fun set_model_mesh_material = SetModelMeshMaterial(model : Model*, mesh_id : LibC::Int, material_id : LibC::Int)
+  fun load_model_animations = LoadModelAnimations(file_name : LibC::Char*, anim_count : LibC::UInt*) : ModelAnimation*
+
+  fun update_model_animation = UpdateModelAnimation(model : Model, anim : ModelAnimation, frame : LibC::Float)
+  fun update_model_animation_ex = UpdateModelAnimationEx(model : Model, anim_a : ModelAnimation, anim_b : ModelAnimation, frame_b : LibC::Float, blend : LibC::Float)
+
+  fun unload_model_animations = UnloadModelAnimations(animations : ModelAnimation*, count : LibC::UInt)
+  fun model_animation_valid? = IsModelAnimationValid(model : Model, anim : ModelAnimation) : Bool
+  fun check_collision_spheres? = CheckCollisionSpheres(center1 : Vector3, radius1 : LibC::Float, center2 : Vector3, radius2 : LibC::Float) : Bool
+  fun check_collision_boxes? = CheckCollisionBoxes(box1 : BoundingBox, box2 : BoundingBox) : Bool
+  fun check_collision_box_sphere? = CheckCollisionBoxSphere(box : BoundingBox, center : Vector3, radius : LibC::Float) : Bool
+  fun get_ray_collision_sphere = GetRayCollisionSphere(ray : Ray, center : Vector3, radius : LibC::Float) : RayCollision
+  fun get_ray_collision_box = GetRayCollisionBox(ray : Ray, box : BoundingBox) : RayCollision
+  fun get_ray_collision_mesh = GetRayCollisionMesh(ray : Ray, mesh : Mesh, transform : Matrix) : RayCollision
+  fun get_ray_collision_triangle = GetRayCollisionTriangle(ray : Ray, p1 : Vector3, p2 : Vector3, p3 : Vector3) : RayCollision
+  fun get_ray_collision_quad = GetRayCollisionQuad(ray : Ray, p1 : Vector3, p2 : Vector3, p3 : Vector3, p4 : Vector3) : RayCollision
+  fun get_camera_forward = GetCameraForward(camera : Raylib::Camera3D*) : Raylib::Vector3
+  fun get_camera_up = GetCameraUp(camera : Raylib::Camera3D*) : Raylib::Vector3
+  fun get_camera_right = GetCameraRight(camera : Raylib::Camera3D*) : Raylib::Vector3
+  fun camera_move_forward = CameraMoveForward(camera : Raylib::Camera3D*, distance : LibC::Float, moveInWorldPlane : Bool)
+  fun camera_move_up = CameraMoveUp(camera : Raylib::Camera3D*, distance : LibC::Float)
+  fun camera_move_right = CameraMoveRight(camera : Raylib::Camera3D*, distance : LibC::Float, moveInWorldPlane : Bool)
+  fun camera_move_target = CameraMoveToTarget(camera : Raylib::Camera3D*, delta : LibC::Float)
+  fun camera_yaw = CameraYaw(camera : Raylib::Camera3D*, angle : LibC::Float, rotateAroundTarget : Bool)
+  fun camera_pitch = CameraPitch(camera : Raylib::Camera3D*, angle : LibC::Float, lockView : Bool, rotateAroundTarget : Bool, rotateUp : Bool)
+  fun camera_roll = CameraRoll(camera : Raylib::Camera3D*, angle : LibC::Float)
+end

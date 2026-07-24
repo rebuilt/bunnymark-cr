@@ -1,0 +1,9 @@
+name: raylib-cr
+version: 6.0
+raylib_version: 6.0
+authors:
+  - sol-vin <ian@sol.vin>
+
+crystal: 1.11.2
+
+license: MIT

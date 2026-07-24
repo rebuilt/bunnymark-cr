@@ -1,0 +1,16 @@
+name: collisionarea
+version: 0.1.0
+
+authors:
+  - Ian Rash <ian@sol.vin>
+
+targets:
+  main:
+    main: src/shapes_top_down_lights.cr
+dependencies:
+  raylib-cr:
+    path: ../../
+
+crystal: 1.6.1
+
+license: MIT
