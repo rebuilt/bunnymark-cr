@@ -4,11 +4,13 @@ MAX_BUNNIES        = 1000000
 MAX_BATCH_ELEMENTS =   8192
 
 struct Bunny
-  property position : Array(Int32)
-  property speed : Array(Int32)
+  property x : Int32
+  property y : Int32
+  property vx : Int32
+  property vy : Int32
   property color : Raylib::Color
 
-  def initialize(@position : Array(Int32), @speed : Array(Int32), @color : Raylib::Color)
+  def initialize(@x : Int32, @y : Int32, @vx : Int32, @vy : Int32, @color : Raylib::Color)
   end
 end
 
@@ -20,6 +22,9 @@ def main
 
   tex_bunny = Raylib.load_texture("resources/raybunny.png")
 
+  bunny_half_width = tex_bunny.width / 2.0
+  bunny_half_height = tex_bunny.height / 2.0
+
   bunnies = [] of Bunny
   bunnies_count = 0
   paused = false
@@ -29,19 +34,19 @@ def main
   until Raylib.close_window?
     # Update
     if Raylib.mouse_button_down?(Raylib::MouseButton::Left)
+      mouse_x = Raylib.get_mouse_position.x.to_i
+      mouse_y = Raylib.get_mouse_position.y.to_i
       # Create more bunnies
-      100.times do |i|
+      100.times do
         if bunnies_count < MAX_BUNNIES
-          position = [Raylib.get_mouse_position.x.to_i, Raylib.get_mouse_position.y.to_i]
-          speed = [0, 0]
-          speed[0] = (Random.rand(-250..250) / 60).to_i
-          speed[1] = (Random.rand(-250..250) / 60).to_i
           color = Raylib::Color.new
           color.r = Raylib.get_random_value(50, 240).to_u8
           color.g = Raylib.get_random_value(80, 240).to_u8
           color.b = Raylib.get_random_value(100, 240).to_u8
           color.a = 255
-          bunnies << Bunny.new(position, speed, color)
+          vx = (Random.rand(-250..250) / 60).to_i
+          vy = (Random.rand(-250..250) / 60).to_i
+          bunnies << Bunny.new(mouse_x, mouse_y, vx, vy, color)
           bunnies_count += 1
         end
       end
@@ -53,22 +58,21 @@ def main
 
     unless paused
       # Update bunnies
-      bunnies.each do |bunny|
-        # Update position
-        pos = bunny.position
-        pos[0] += bunny.speed[0]
-        pos[1] += bunny.speed[1]
-        bunny.position = pos
+      bunnies.each_index do |i|
+        bunny = bunnies[i]
+        bunny.x += bunny.vx
+        bunny.y += bunny.vy
 
-        # Check boundaries and reverse direction if needed
-        if ((pos[0] + tex_bunny.width / 2.0) > screen_width) ||
-           ((pos[0] + tex_bunny.width / 2.0) < 0)
-          bunny.speed[0] *= -1
+        if (bunny.x + bunny_half_width) > screen_width ||
+           (bunny.x + bunny_half_width) < 0
+          bunny.vx *= -1
         end
-        if ((pos[1] + tex_bunny.height / 2.0) > screen_height) ||
-           ((pos[1] + tex_bunny.height / 2.0 - 40) < 0)
-          bunny.speed[1] *= -1
+        if (bunny.y + bunny_half_height) > screen_height ||
+           (bunny.y + bunny_half_height - 40) < 0
+          bunny.vy *= -1
         end
+
+        bunnies[i] = bunny
       end
     end
 
@@ -77,7 +81,7 @@ def main
     Raylib.clear_background(Raylib::RAYWHITE)
 
     bunnies.each do |bunny|
-      Raylib.draw_texture(tex_bunny, bunny.position[0], bunny.position[1], bunny.color)
+      Raylib.draw_texture(tex_bunny, bunny.x, bunny.y, bunny.color)
     end
 
     Raylib.draw_rectangle(0, 0, screen_width, 40, Raylib::BLACK)
